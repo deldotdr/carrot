@@ -7,9 +7,10 @@ import sys
 
 from carrot.utils import rpartition
 
-DEFAULT_BACKEND = "carrot.backends.pyamqplib.Backend"
+DEFAULT_BACKEND = "carrot.backends.txamqplib.Backend"
 
 BACKEND_ALIASES = {
+    "txamqp": "carrot.backends.txamqplib.Backend",
     "amqp": "carrot.backends.pyamqplib.Backend",
     "amqplib": "carrot.backends.pyamqplib.Backend",
     "stomp": "carrot.backends.pystomp.Backend",

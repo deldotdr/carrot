@@ -3,10 +3,11 @@
 Getting a connection to the AMQP server.
 
 """
-from amqplib.client_0_8.connection import AMQPConnectionException
 from carrot.backends import get_backend_cls
 import warnings
 import socket
+
+from twisted.internet import defer
 
 DEFAULT_CONNECT_TIMEOUT = 5 # seconds
 SETTING_PREFIX = "BROKER"
@@ -90,7 +91,7 @@ class BrokerConnection(object):
     _closed = True
     backend_cls = None
 
-    ConnectionException = AMQPConnectionException
+    # ConnectionException = AMQPConnectionException
 
     @property
     def host(self):
@@ -117,7 +118,7 @@ class BrokerConnection(object):
         if self._closed == True:
             return
         if not self._connection:
-            self._connection = self._establish_connection()
+            self.connect()
             self._closed = False
         return self._connection
 
@@ -147,12 +148,21 @@ class BrokerConnection(object):
 
     def get_channel(self):
         """Request a new AMQP channel."""
-        return self.connection.channel()
+        ch = self.connection.channel()
+        # XXX uh oh, This is deferred! if this fails, what should happen?
+        ch.channel_open()
+        # ch.addErrback
+        return ch
 
+    @defer.inlineCallbacks
     def connect(self):
-        """Establish a connection to the AMQP server."""
+        """
+        @todo XXX robustify
+        Establish a connection to the AMQP server.
+        """
+        self._connection = yield self._establish_connection()
         self._closed = False
-        return self.connection
+        defer.returnValue(self.connection)
 
     def close(self):
         """Close the currently open connection."""

@@ -9,6 +9,8 @@ import warnings
 
 from carrot import serialization
 
+from twisted.internet import defer
+
 
 class Consumer(object):
     """Message consumer.
@@ -186,13 +188,13 @@ class Consumer(object):
     queue = ""
     exchange = ""
     routing_key = ""
-    durable = True
+    durable = False
     exclusive = False
     auto_delete = False
     exchange_type = "direct"
     channel_open = False
     warn_if_exists = False
-    auto_declare = True
+    auto_declare = True # can this ever be true in the Twisted world?
     auto_ack = False
     no_ack = False
     _closed = True
@@ -253,31 +255,34 @@ class Consumer(object):
                 self.__class__.__name__,
                 gen_unique_id())
 
+    @defer.inlineCallbacks
     def declare(self):
         """Declares the queue, the exchange and binds the queue to
         the exchange."""
-        arguments = None
+        arguments = {}
         routing_key = self.routing_key
         if self.exchange_type == "headers":
             arguments, routing_key = routing_key, ""
 
         if self.queue:
-            self.backend.queue_declare(queue=self.queue, durable=self.durable,
+            yield self.backend.queue_declare(queue=self.queue, durable=self.durable,
                                        exclusive=self.exclusive,
                                        auto_delete=self.auto_delete,
                                        warn_if_exists=self.warn_if_exists)
         if self.exchange:
-            self.backend.exchange_declare(exchange=self.exchange,
+            yield self.backend.exchange_declare(exchange=self.exchange,
                                           type=self.exchange_type,
                                           durable=self.durable,
                                           auto_delete=self.auto_delete)
         if self.queue:
-            self.backend.queue_bind(queue=self.queue,
+            yield self.backend.queue_bind(queue=self.queue,
                                     exchange=self.exchange,
                                     routing_key=routing_key,
                                     arguments=arguments)
+        # whats this for?
         self._closed = False
-        return self
+        # return self
+        defer.returnValue(self)
 
     def _receive_callback(self, raw_message):
         """Internal method used when a message is received in consume mode."""
@@ -647,13 +652,14 @@ class Publisher(object):
         if self.auto_declare and self.exchange:
             self.declare()
 
+    @defer.inlineCallbacks
     def declare(self):
         """Declare the exchange.
 
         Creates the exchange on the broker.
 
         """
-        self.backend.exchange_declare(exchange=self.exchange,
+        yield self.backend.exchange_declare(exchange=self.exchange,
                                         type=self.exchange_type,
                                           durable=self.durable,
                                           auto_delete=self.auto_delete)
@@ -698,6 +704,7 @@ class Publisher(object):
                                             content_type=content_type,
                                             content_encoding=content_encoding)
 
+    @defer.inlineCallbacks
     def send(self, message_data, routing_key=None, delivery_mode=None,
             mandatory=False, immediate=False, priority=0, content_type=None,
             content_encoding=None, serializer=None):
@@ -751,7 +758,7 @@ class Publisher(object):
                                       content_type=content_type,
                                       content_encoding=content_encoding,
                                       serializer=serializer)
-        self.backend.publish(message,
+        yield self.backend.publish(message,
                              exchange=self.exchange, routing_key=routing_key,
                              mandatory=mandatory, immediate=immediate,
                              headers=headers)
