@@ -111,6 +111,7 @@ class BrokerConnection(object):
                                           self.connect_timeout)
         self.ssl = kwargs.get("ssl", self.ssl)
         self.backend_cls = kwargs.get("backend_cls", None)
+        self.name = kwargs.get('name', self.host + self.virtual_host)
         self._closed = None
         self._connection = None
 
