@@ -8,6 +8,7 @@ import weakref
 from txamqp import spec
 from txamqp.content import Content
 from txamqp.protocol import AMQClient
+from txamqp.protocol import AMQChannel
 from txamqp.client import TwistedDelegate
 
 from twisted.internet import defer
@@ -20,11 +21,26 @@ DEFAULT_PORT = 5672
 import carrot
 spec_path_def = os.path.join(carrot.__path__[0], 'spec', 'amqp0-8.xml')
 
+class ChannelWithCallback(AMQChannel):
+
+    def __init__(self, id, outgoing):
+        AMQChannel.__init__(self, id, outgoing)
+        self.deliver_callbacks = []
+
+    def register_deliver_callback(self, callback):
+        self.deliver_callbacks.append(callback)
+
+    def _deliver(self, msg):
+        if not self.deliver_callbacks:
+            raise NotImplementedError("No channel callbacks...")
+        for cb in self.deliver_callbacks:
+            cb(msg)
+
 class Connection(AMQClient):
     """
     @note Adds to and augments functionality of the txAMQP library.
     """
-    
+    channelClass = ChannelWithCallback    
     next_channel_id = 0
 
     def channel(self, id=None):
@@ -73,7 +89,11 @@ class Connection(AMQClient):
 class InterceptionPoint(TwistedDelegate):
 
     def basic_deliver(self, ch, msg):
-        self.client.commonDelivery(msg)
+        # self.client.commonDelivery(msg)
+        ch._deliver(msg)
+
+    def Xbasic_get_ok(self, ch, msg):
+        ch._deliver(msg)
 
 class ConnectionCreator(object):
     """Create AMQP Client. 
@@ -156,12 +176,14 @@ class Message(BaseMessage):
 
         kwargs['body'] = amqp_message.content.body
         kwargs['delivery_tag'] = amqp_message.delivery_tag
+        """
         for attr_name in (
                           "content_type",
                           "content_encoding",
                           ):
-            kwargs[attr_name] = getattr(amqp_message.properties, attr_name, None)
+            kwargs[attr_name] = getattr(amqp_message.content.properties, attr_name, None)
 
+        """
         super(Message, self).__init__(backend, **kwargs)
 
 class Backend(BaseBackend):
@@ -281,15 +303,13 @@ class Backend(BaseBackend):
             there was no messages waiting on the queue.
 
         """
-        raw_message = self.channel.basic_get(queue, no_ack=no_ack)
-        if not raw_message:
-            return None
-        return self.message_to_python(raw_message)
+        return self.channel.basic_get(queue=queue, no_ack=no_ack)
 
-    def declare_consumer(self, queue, no_ack, consumer_tag, nowait=False):
+    def declare_consumer(self, queue, no_ack, callback, consumer_tag, nowait=False):
         """Declare a consumer.
         XXX here is where delegate comes in, callback 
         """
+        self.channel.register_deliver_callback(callback)
         return self.channel.basic_consume(queue=queue,
                                           no_ack=no_ack,
                                           # callback=callback,
@@ -298,11 +318,6 @@ class Backend(BaseBackend):
 
     def consume(self, limit=None):
         """Returns an iterator that waits for one message at a time."""
-        for total_message_count in count():
-            if limit and total_message_count >= limit:
-                raise StopIteration
-            self.channel.wait()
-            yield True
 
     def cancel(self, consumer_tag):
         """Cancel a channel by consumer tag."""
@@ -335,22 +350,27 @@ class Backend(BaseBackend):
                       'content type':content_type,
                       'content encoding':content_encoding,
                       'delivery mode':delivery_mode}
-        message = Content(message_data)# , properties=properties)
+        message = Content(message_data, properties=properties)
         return message
 
     def publish(self, message, exchange, routing_key, mandatory=None,
             immediate=None, headers=None):
         """Publish a message to a named exchange."""
 
+        """
         if headers:
             message.properties["headers"] = headers
+        """
 
         ret = self.channel.basic_publish(content=message, exchange=exchange,
                                          routing_key=routing_key,
                                          mandatory=mandatory,
                                          immediate=immediate)
+        """
         if mandatory or immediate:
             self.close()
+        """
+        return ret
 
     def qos(self, prefetch_size, prefetch_count, apply_global=False):
         """Request specific Quality of Service."""

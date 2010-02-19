@@ -285,13 +285,17 @@ class Consumer(object):
         defer.returnValue(self)
 
     def _receive_callback(self, raw_message):
-        """Internal method used when a message is received in consume mode."""
+        """Internal method used when a message is received in consume mode.
+        This is also where the msg is transformed from amqp format to
+        internal format.
+        """
         message = self.backend.message_to_python(raw_message)
 
         if self.auto_ack and not message.acknowledged:
             message.ack()
         self.receive(message.payload, message)
 
+    @defer.inlineCallbacks
     def fetch(self, no_ack=None, auto_ack=None, enable_callbacks=False):
         """Receive the next message waiting on the queue.
 
@@ -306,13 +310,14 @@ class Consumer(object):
         """
         no_ack = no_ack or self.no_ack
         auto_ack = auto_ack or self.auto_ack
-        message = self.backend.get(self.queue, no_ack=no_ack)
-        if message:
+        raw_message = yield self.backend.get(self.queue, no_ack=no_ack)
+        message = self.backend.message_to_python(raw_message)
+        if message.body:
             if auto_ack and not message.acknowledged:
                 message.ack()
             if enable_callbacks:
                 self.receive(message.payload, message)
-        return message
+        defer.returnValue(message)
 
     def process_next(self):
         """**DEPRECATED** Use :meth:`fetch` like this instead:
@@ -426,7 +431,7 @@ class Consumer(object):
                                       consumer_tag=self.consumer_tag,
                                       nowait=True)
         self.channel_open = True
-        return self.backend.consume(limit=limit)
+        # return self.backend.consume(limit=limit)
 
     def wait(self, limit=None):
         """Go into consume mode.
@@ -758,10 +763,12 @@ class Publisher(object):
                                       content_type=content_type,
                                       content_encoding=content_encoding,
                                       serializer=serializer)
-        yield self.backend.publish(message,
+        r = yield self.backend.publish(message,
                              exchange=self.exchange, routing_key=routing_key,
                              mandatory=mandatory, immediate=immediate,
                              headers=headers)
+        defer.returnValue(r)
+
 
     def close(self):
         """Close connection to queue."""

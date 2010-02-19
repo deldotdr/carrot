@@ -98,7 +98,8 @@ class BrokerConnection(object):
         """The host as a hostname/port pair separated by colon."""
         return ":".join([self.hostname, str(self.port)])
 
-    def __init__(self, hostname=None, userid=None, password=None,
+    def __init__(self, hostname='localhost', userid='guest',
+            password='guest',
             virtual_host=None, port=None, **kwargs):
         self.hostname = hostname
         self.userid = userid
@@ -115,12 +116,25 @@ class BrokerConnection(object):
 
     @property
     def connection(self):
+        """@todo Raise exception if there is no _connection
+        """
         if self._closed == True:
             return
         if not self._connection:
             self.connect()
             self._closed = False
         return self._connection
+
+    @defer.inlineCallbacks
+    def connect(self):
+        """
+        @todo XXX robustify
+        Establish a connection to the AMQP server.
+        """
+        self._connection = yield self._establish_connection()
+        # self._connection.install
+        self._closed = False
+        defer.returnValue(self.connection)
 
     def __enter__(self):
         return self
@@ -153,16 +167,6 @@ class BrokerConnection(object):
         ch.channel_open()
         # ch.addErrback
         return ch
-
-    @defer.inlineCallbacks
-    def connect(self):
-        """
-        @todo XXX robustify
-        Establish a connection to the AMQP server.
-        """
-        self._connection = yield self._establish_connection()
-        self._closed = False
-        defer.returnValue(self.connection)
 
     def close(self):
         """Close the currently open connection."""
