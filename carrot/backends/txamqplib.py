@@ -188,6 +188,10 @@ class Message(BaseMessage):
         """
         super(Message, self).__init__(backend, **kwargs)
 
+    def X__str__(self):
+        routing_key = self._amqp_message.routing_key
+        exchange = self._amqp_message.exchange
+
 class Backend(BaseBackend):
     """
 
@@ -345,12 +349,13 @@ class Backend(BaseBackend):
         return self.channel.basic_reject(delivery_tag, requeue=True)
 
     def prepare_message(self, message_data, delivery_mode, priority=None,
-                content_type=None, content_encoding=None):
+                content_type=None, content_encoding=None, reply_to=None):
         """Encapsulate data into a AMQP message."""
         properties = {'priority':priority,
                       'content type':content_type,
                       'content encoding':content_encoding,
-                      'delivery mode':delivery_mode}
+                      'delivery mode':delivery_mode,
+                      'reply to':reply_to}
         message = Content(message_data, properties=properties)
         return message
 

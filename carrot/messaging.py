@@ -691,7 +691,7 @@ class Publisher(object):
 
     def create_message(self, message_data, delivery_mode=None, priority=None,
                        content_type=None, content_encoding=None,
-                       serializer=None):
+                       serializer=None, reply_to=None):
         """With any data, serialize it and encapsulate it in a AMQP
         message with the proper headers set."""
 
@@ -719,12 +719,13 @@ class Publisher(object):
         return self.backend.prepare_message(message_data, delivery_mode,
                                             priority=priority,
                                             content_type=content_type,
-                                            content_encoding=content_encoding)
+                                            content_encoding=content_encoding,
+                                            reply_to=reply_to)
 
     @defer.inlineCallbacks
     def send(self, message_data, routing_key=None, delivery_mode=None,
             mandatory=False, immediate=False, priority=0, content_type=None,
-            content_encoding=None, serializer=None):
+            content_encoding=None, serializer=None, reply_to=None):
         """Send a message.
 
         :param message_data: The message data to send. Can be a list,
@@ -774,7 +775,8 @@ class Publisher(object):
                                       delivery_mode=delivery_mode,
                                       content_type=content_type,
                                       content_encoding=content_encoding,
-                                      serializer=serializer)
+                                      serializer=serializer,
+                                      reply_to=reply_to)
         r = yield self.backend.publish(message,
                              exchange=self.exchange, routing_key=routing_key,
                              mandatory=mandatory, immediate=immediate,
