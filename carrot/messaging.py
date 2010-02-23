@@ -190,7 +190,7 @@ class Consumer(object):
     routing_key = ""
     durable = False
     exclusive = False
-    auto_delete = False
+    auto_delete = True
     exchange_type = "direct"
     channel_open = False
     warn_if_exists = False
@@ -433,6 +433,18 @@ class Consumer(object):
         self.channel_open = True
         # return self.backend.consume(limit=limit)
 
+    def consume(self, limit=None, no_ack=None):
+        """
+        initial method for starting consumer using txamqp backend
+        """
+        no_ack = no_ack or self.no_ack
+        self.backend.declare_consumer(queue=self.queue, no_ack=no_ack,
+                                      callback=self._receive_callback,
+                                      consumer_tag=self.consumer_tag,
+                                      nowait=True)
+        self.channel_open = True
+        # return self.backend.consume(limit=limit)
+
     def wait(self, limit=None):
         """Go into consume mode.
 
@@ -635,7 +647,7 @@ class Publisher(object):
     _closed = True
     exchange_type = "direct"
     durable = True
-    auto_delete = False
+    auto_delete = True
     auto_declare = True
     serializer = None
 

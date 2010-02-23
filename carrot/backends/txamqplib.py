@@ -15,6 +15,8 @@ from twisted.internet import defer
 from twisted.internet import reactor
 from twisted.internet import protocol
 
+from twisted.python import log
+
 from carrot.backends.base import BaseMessage, BaseBackend
 
 DEFAULT_PORT = 5672
@@ -256,7 +258,7 @@ class Backend(BaseBackend):
 
     def queue_delete(self, queue, if_unused=False, if_empty=False):
         """Delete queue by name."""
-        return self.channel.queue_delete(queue, if_unused, if_empty)
+        return self.channel.queue_delete(queue=queue, if_unused=if_unused, if_empty=if_empty)
 
     def queue_purge(self, queue, **kwargs):
         """Discard all messages in the queue. This will delete the messages
@@ -317,18 +319,17 @@ class Backend(BaseBackend):
                                           nowait=nowait)
 
     def consume(self, limit=None):
-        """Returns an iterator that waits for one message at a time."""
+        """
+        """
 
     def cancel(self, consumer_tag):
         """Cancel a channel by consumer tag."""
-        if not self.channel.connection:
-            return
-        self.channel.basic_cancel(consumer_tag)
+        self.channel.basic_cancel(consumer_tag=consumer_tag)
 
     def close(self):
         """Close the channel if open."""
-        if self._channel and self._channel.is_open:
-            self._channel.close()
+        # if self._channel and self._channel.is_open:
+        # self._channel.close()
         self._channel_ref = None
 
     def ack(self, delivery_tag):
