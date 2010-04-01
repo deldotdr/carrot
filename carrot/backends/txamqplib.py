@@ -92,8 +92,6 @@ class InterceptionPoint(TwistedDelegate):
 
     def basic_deliver(self, ch, msg):
         # self.client.commonDelivery(msg)
-        if msg.content.body.count('china'):
-            return
         ch._deliver(msg)
 
     def Xbasic_get_ok(self, ch, msg):
