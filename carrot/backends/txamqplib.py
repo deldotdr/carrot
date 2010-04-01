@@ -67,13 +67,13 @@ class Connection(AMQClient):
             self.channels[id] = ch
         return ch
 
-    @defer.inlineCallbacks
+    # @defer.inlineCallbacks
     def connectionMade(self):
         """
         Here you can do something when the connection is made.
         """
         AMQClient.connectionMade(self)
-        yield self.authenticate(self.factory.username, self.factory.password)
+        # yield self.authenticate(self.factory.username, self.factory.password)
 
     def frameLengthExceeded(self):
         """
@@ -92,6 +92,8 @@ class InterceptionPoint(TwistedDelegate):
 
     def basic_deliver(self, ch, msg):
         # self.client.commonDelivery(msg)
+        if msg.content.body.count('china'):
+            return
         ch._deliver(msg)
 
     def Xbasic_get_ok(self, ch, msg):
@@ -133,6 +135,11 @@ class ConnectionCreator(object):
         f = protocol._InstanceFactory(self.reactor, p, d)
         self.connector = self.reactor.connectTCP(host, port, f, timeout=timeout,
                 bindAddress=bindAddress)
+        def auth_cb(conn):
+            d = conn.authenticate(self.username, self.password)
+            d.addCallback(lambda _: conn)
+            return d
+        d.addCallback(auth_cb)
         return d
 
 class QueueAlreadyExistsWarning(UserWarning):

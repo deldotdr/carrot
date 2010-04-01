@@ -111,7 +111,6 @@ class BrokerConnection(object):
                                           self.connect_timeout)
         self.ssl = kwargs.get("ssl", self.ssl)
         self.backend_cls = kwargs.get("backend_cls", None)
-        self.name = kwargs.get('name', self.host + self.virtual_host)
         self._closed = None
         self._connection = None
 
@@ -132,10 +131,11 @@ class BrokerConnection(object):
         @todo XXX robustify
         Establish a connection to the AMQP server.
         """
+        # this yield is waiting on the client creator in the backend
         self._connection = yield self._establish_connection()
         # self._connection.install
         self._closed = False
-        defer.returnValue(self.connection)
+        defer.returnValue(self._connection)
 
     def __enter__(self):
         return self

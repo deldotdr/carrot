@@ -229,8 +229,8 @@ class Consumer(object):
 
         self.consumer_tag = self._generate_consumer_tag()
 
-        if self.auto_declare:
-            self.declare()
+        # if self.auto_declare:
+        #     self.declare()
 
     def __enter__(self):
         return self
@@ -254,6 +254,13 @@ class Consumer(object):
                 self.__class__.__module__,
                 self.__class__.__name__,
                 gen_unique_id())
+
+    @staticmethod
+    def new(args, queue=None, exchange=None, routing_key=None):
+        """Use this creator for deferred instantiation
+        """
+        inst = Consumer(args, queue=queue, exchange=exchange, routing_key=routing_key)
+        return inst.declare()
 
     @defer.inlineCallbacks
     def declare(self):
@@ -666,8 +673,15 @@ class Publisher(object):
         self.auto_declare = kwargs.get("auto_declare", self.auto_declare)
         self._closed = False
 
-        if self.auto_declare and self.exchange:
-            self.declare()
+        # if self.auto_declare and self.exchange:
+        #     self.declare()
+
+    @classmethod
+    def new(cls, *args, **kwargs):
+        """Use this creator for deferred instantiation
+        """
+        inst = cls(args, kwargs)
+        return inst.declare()
 
     @defer.inlineCallbacks
     def declare(self):
