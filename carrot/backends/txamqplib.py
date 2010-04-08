@@ -38,6 +38,7 @@ class ChannelWithCallback(AMQChannel):
         for cb in self.deliver_callbacks:
             cb(msg)
 
+
 class Connection(AMQClient):
     """
     @note Adds to and augments functionality of the txAMQP library.
@@ -89,6 +90,8 @@ class Connection(AMQClient):
         """
 
 class InterceptionPoint(TwistedDelegate):
+    """@todo allow for filters/interceptors to be installed 
+    """
 
     def basic_deliver(self, ch, msg):
         # self.client.commonDelivery(msg)
@@ -179,19 +182,21 @@ class Message(BaseMessage):
 
     def __init__(self, backend, amqp_message, **kwargs):
         self._amqp_message = amqp_message
-        self.backend = backend
 
         kwargs['body'] = amqp_message.content.body
         kwargs['delivery_tag'] = amqp_message.delivery_tag
-        """
         for attr_name in (
-                          "content_type",
-                          "content_encoding",
+                          "content type",
+                          "content encoding",
+                          "reply to",
+                          "priority",
+                          "delivery mode",
                           ):
-            kwargs[attr_name] = getattr(amqp_message.content.properties, attr_name, None)
+            kwargs[attr_name.replace(' ', '_')] = amqp_message.content.properties.get(attr_name, None)
+        self.reply_to = kwargs['reply_to']
 
-        """
-        super(Message, self).__init__(backend, **kwargs)
+        # super(Message, self).__init__(backend, **kwargs)
+        BaseMessage.__init__(self, backend, **kwargs)
 
     def X__str__(self):
         routing_key = self._amqp_message.routing_key

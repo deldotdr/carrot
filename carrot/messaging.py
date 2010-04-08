@@ -355,7 +355,11 @@ class Consumer(object):
         if not self.callbacks:
             raise NotImplementedError("No consumer callbacks registered")
         for callback in self.callbacks:
-            callback(message_data, message)
+            # callback(message_data, message)
+            # hack/design decission
+            # interceptor pipe only needs message object...not decoded app
+            # message
+            callback(message)
 
     def register_callback(self, callback):
         """Register a callback function to be triggered by :meth:`receive`.
