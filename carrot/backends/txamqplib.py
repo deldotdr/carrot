@@ -23,6 +23,11 @@ DEFAULT_PORT = 5672
 import carrot
 spec_path_def = os.path.join(carrot.__path__[0], 'spec', 'amqp0-8.xml')
 
+class QueueAlreadyExistsWarning(UserWarning):
+    """A queue with that name already exists, so a recently changed
+    ``routing_key`` or other settings might be ignored unless you
+    rename the queue or restart the broker."""
+
 class ChannelWithCallback(AMQChannel):
 
     def __init__(self, id, outgoing):

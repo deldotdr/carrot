@@ -256,10 +256,11 @@ class Consumer(object):
                 gen_unique_id())
 
     @staticmethod
-    def new(args, queue=None, exchange=None, routing_key=None):
+    def new(args, queue=None, exchange=None, exchange_type=None, routing_key=None):
         """Use this creator for deferred instantiation
         """
-        inst = Consumer(args, queue=queue, exchange=exchange, routing_key=routing_key)
+        inst = Consumer(args, queue=queue, exchange=exchange,
+                    exchange_type=exchange_type, routing_key=routing_key)
         return inst.declare()
 
     @defer.inlineCallbacks
@@ -290,6 +291,20 @@ class Consumer(object):
         self._closed = False
         # return self
         defer.returnValue(self)
+
+    @defer.inlineCallbacks
+    def add_binding(self, routing_key, exchange=None):
+        """add a binding to this consumers queue
+        assume queue already exists. this should only be used on an active
+        consumer that has already done self.declare
+        also, use the exchange the consumer's queue is already bound to
+
+        XXX handle amqp error/exception 
+        """
+        if self.queue:
+            yield self.backend.queue_bind(queue=self.queue,
+                                        exchange=self.exchange,
+                                        routing_key=routing_key)
 
     def _receive_callback(self, raw_message):
         """Internal method used when a message is received in consume mode.
