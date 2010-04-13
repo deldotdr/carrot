@@ -256,8 +256,9 @@ class Consumer(object):
                 gen_unique_id())
 
     @staticmethod
-    def new(args, queue=None, exchange=None, exchange_type=None, routing_key=None):
+    def new(args, queue=None, exchange=None, exchange_type='direct', routing_key=None):
         """Use this creator for deferred instantiation
+        XXX bug in specifying default exchange_type
         """
         inst = Consumer(args, queue=queue, exchange=exchange,
                     exchange_type=exchange_type, routing_key=routing_key)
