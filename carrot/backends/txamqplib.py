@@ -98,9 +98,10 @@ class InterceptionPoint(TwistedDelegate):
     """@todo allow for filters/interceptors to be installed 
     """
 
+    @defer.inlineCallbacks
     def basic_deliver(self, ch, msg):
         # self.client.commonDelivery(msg)
-        ch._deliver(msg)
+        yield defer.maybeDeferred(ch._deliver, msg)
 
     def Xbasic_get_ok(self, ch, msg):
         ch._deliver(msg)
