@@ -194,7 +194,7 @@ class Consumer(object):
     exchange_type = "direct"
     channel_open = False
     warn_if_exists = False
-    auto_declare = True # can this ever be true in the Twisted world?
+    auto_declare = False 
     auto_ack = False
     no_ack = False
     _closed = True
@@ -759,7 +759,8 @@ class Publisher(object):
     @defer.inlineCallbacks
     def send(self, message_data, routing_key=None, delivery_mode=None,
             mandatory=False, immediate=False, priority=0, content_type=None,
-            content_encoding=None, serializer=None, reply_to=None):
+            content_encoding=None, reply_to=None, headers={},
+            serializer=None, **kwargs):
         """Send a message.
 
         :param message_data: The message data to send. Can be a list,
@@ -777,7 +778,7 @@ class Publisher(object):
         :keyword immediate: Request immediate delivery.
             If the message cannot be routed to a queue consumer immediately,
             an exception will be raised. This is instead of the default
-            behaviour, where the server will accept and queue the message,
+            behavior, where the server will accept and queue the message,
             but with no guarantee that the message will ever be consumed.
 
         :keyword delivery_mode: Override the default :attr:`delivery_mode`.

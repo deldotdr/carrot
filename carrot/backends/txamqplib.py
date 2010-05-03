@@ -1,4 +1,9 @@
-
+"""
+TODO:
+    setup all deferred rpc style amqp methods with a set of standard
+    call/err backs in backend, so messaging objects can try not to worry
+    about deferreds. maybe with a decorator
+"""
 import os
 from itertools import count
 import warnings
@@ -180,7 +185,7 @@ class Message(BaseMessage):
 
     .. attribute:: _amqp_message
 
-        A :class:`amqplib.client_0_8.basic_message.Message` instance.
+        A :class:`txamqp.content.Content` instance.
         This is a private attribute and should not be accessed by
         production code.
 
@@ -188,18 +193,28 @@ class Message(BaseMessage):
 
     def __init__(self, backend, amqp_message, **kwargs):
         self._amqp_message = amqp_message
-
         kwargs['body'] = amqp_message.content.body
         kwargs['delivery_tag'] = amqp_message.delivery_tag
         for attr_name in (
                           "content type",
                           "content encoding",
-                          "reply to",
-                          "priority",
+                          "headers",
                           "delivery mode",
+                          "priority",
+                          "correlation id",
+                          "reply to",
+                          "expiration",
+                          "message id",
+                          "timestamp",
+                          "type",
+                          "user id",
+                          "app id",
+                          "cluster id",
                           ):
             kwargs[attr_name.replace(' ', '_')] = amqp_message.content.properties.get(attr_name, None)
+        # more amqp properties (not defined in original BaseMessage)
         self.reply_to = kwargs['reply_to']
+        self.headers = kwargs['headers']
 
         # super(Message, self).__init__(backend, **kwargs)
         BaseMessage.__init__(self, backend, **kwargs)
@@ -365,13 +380,26 @@ class Backend(BaseBackend):
         return self.channel.basic_reject(delivery_tag, requeue=True)
 
     def prepare_message(self, message_data, delivery_mode, priority=None,
-                content_type=None, content_encoding=None, reply_to=None):
+                content_type=None, content_encoding=None, headers={},
+                reply_to=None, correlation_id=None, expiration=None,
+                message_id=None, timestamp=None, type=None, user_id=None,
+                app_id=None, cluster_id=None):
         """Encapsulate data into a AMQP message."""
-        properties = {'priority':priority,
-                      'content type':content_type,
-                      'content encoding':content_encoding,
-                      'delivery mode':delivery_mode,
-                      'reply to':reply_to}
+        properties = {
+                  'content type':content_type,
+                  'content encoding':content_encoding,
+                  'delivery mode':delivery_mode,
+                  'priority':priority,
+                  'correlation id':correlation_id,
+                  'reply to':reply_to,
+                  'expiration':expiration,
+                  'message id':message_id,
+                  'timestamp':timestamp,
+                  'type':type,
+                  'user id':user_id,
+                  'app id':app_id,
+                  'cluster id':cluster_id,
+                  }
         message = Content(message_data, properties=properties)
         return message
 
@@ -396,8 +424,8 @@ class Backend(BaseBackend):
 
     def qos(self, prefetch_size, prefetch_count, apply_global=False):
         """Request specific Quality of Service."""
-        self.channel.basic_qos(prefetch_size, prefetch_count,
-                                apply_global)
+        return self.channel.basic_qos(prefetch_size=prefetch_size,
+                prefetch_count=prefetch_count, global_=apply_global)
 
     def flow(self, active):
         """Enable/disable flow from peer."""
