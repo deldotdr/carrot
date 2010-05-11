@@ -71,6 +71,7 @@ setup(
     platforms=["any"],
     packages=packages,
     data_files=data_files,
+    package_data={'carrot':['spec/*.xml']},
     zip_safe=False,
     test_suite="nose.collector",
     install_requires=[

@@ -1,0 +1,18 @@
+# Release minor fork version of Carrot to amoeba.ucsd.edu packages
+#CUR_VERSION=`cat ./_fork_version_count`
+#NEXT_VERSION=`expr $CUR_VERSION + 1`
+
+#echo "Packaging and releasing Carrot (txamqp version) version 0.10.$NEXT_VERION"
+
+#ARCH_NAME="carrot-0.10.$NEXT_VERSION-txamqp.tar.gz"
+#echo $ARCH_NAME
+
+
+#git archive --format=tar --prefix=carrot/ HEAD | gzip > $ARCH_NAME
+python setup.py sdist
+
+# remember version number
+#echo $NEXT_VERSION > ./_fork_version_count
+#echo "Uploading $ARCH_NAME to ooici.net packages resource"
+# scp $ARCH_NAME amoeba:~/var/www/packages/$ARCH_NAME
+scp ./dist/ amoeba:~/var/www/packages/
