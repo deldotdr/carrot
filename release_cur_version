@@ -14,5 +14,5 @@ python setup.py sdist
 # remember version number
 #echo $NEXT_VERSION > ./_fork_version_count
 #echo "Uploading $ARCH_NAME to ooici.net packages resource"
-# scp $ARCH_NAME amoeba:~/var/www/packages/$ARCH_NAME
-scp ./dist/ amoeba:~/var/www/packages/
+# scp $ARCH_NAME amoeba:/var/www/packages/$ARCH_NAME
+scp ./dist/ amoeba:/var/www/packages/

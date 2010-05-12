@@ -11,3 +11,4 @@ include TODO
 recursive-include docs *
 recursive-include carrot *.py
 recursive-include tests *
+include carrot/spec/*
