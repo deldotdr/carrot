@@ -288,7 +288,6 @@ class Consumer(object):
                                     exchange=self.exchange,
                                     routing_key=routing_key,
                                     arguments=arguments)
-        # whats this for?
         self._closed = False
         # return self
         defer.returnValue(self)
@@ -453,12 +452,25 @@ class Consumer(object):
 
         """
         no_ack = no_ack or self.no_ack
-        self.backend.declare_consumer(queue=self.queue, no_ack=no_ack,
+
+        def _cb(result):
+            """set channel_open on success
+            """
+            self.channel_open = True
+            return result
+
+        def _eb(reason):
+            """Catch amqp Connection exception:
+             - 530 'NOT_ALLOWED - no previously declared queue'
+            """
+            return reason
+
+        d = self.backend.declare_consumer(queue=self.queue, no_ack=no_ack,
                                       callback=self._receive_callback,
                                       consumer_tag=self.consumer_tag,
                                       nowait=True)
-        self.channel_open = True
-        # return self.backend.consume(limit=limit)
+        d.addCallbacks(_cb, _eb)
+        return d
 
     def consume(self, limit=None, no_ack=None):
         """

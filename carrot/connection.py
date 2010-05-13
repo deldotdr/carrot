@@ -84,7 +84,7 @@ class BrokerConnection(object):
 
     """
     virtual_host = "/"
-    port = None
+    port = 5672
     insist = False
     connect_timeout = DEFAULT_CONNECT_TIMEOUT
     ssl = False
