@@ -52,8 +52,9 @@ class BaseMessage(object):
         if self.acknowledged:
             raise self.MessageStateError(
                 "Message already acknowledged with state: %s" % self._state)
-        self.backend.ack(self.delivery_tag)
+        d = self.backend.ack(self.delivery_tag)
         self._state = "ACK"
+        return d
 
     def reject(self):
         """Reject this message.
