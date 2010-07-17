@@ -124,12 +124,15 @@ class ConnectionCreator(object):
     protocol = Connection
 
     def __init__(self, reactor, username='guest', password='guest', 
-                                vhost='/', delegate=None, spec_path=spec_path_def):
+                                vhost='/', delegate=None, 
+                                spec_path=spec_path_def,
+                                heartbeat=0):
         self.reactor = reactor
         self.username = username
         self.password = password
         self.vhost = vhost
         self.spec= spec.load(spec_path)
+        self.heartbeat = heartbeat
         if delegate is None:
             delegate = TwistedDelegate()
         self.delegate = delegate
@@ -142,7 +145,8 @@ class ConnectionCreator(object):
         d = defer.Deferred()
         p = self.protocol(self.delegate, 
                                     self.vhost,
-                                    self.spec)
+                                    self.spec,
+                                    heartbeat=self.heartbeat)
         p.factory = self
         f = protocol._InstanceFactory(self.reactor, p, d)
         self.connector = self.reactor.connectTCP(host, port, f, timeout=timeout,
@@ -266,6 +270,7 @@ class Backend(BaseBackend):
                           password=conninfo.password,
                           vhost=conninfo.virtual_host,
                           delegate=delegate,
+                          heartbeat=conninfo.heartbeat,
                           # insist=conninfo.insist,
                           # ssl=conninfo.ssl,
                           # connect_timeout=conninfo.connect_timeout

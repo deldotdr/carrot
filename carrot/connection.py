@@ -107,6 +107,7 @@ class BrokerConnection(object):
         self.virtual_host = virtual_host or self.virtual_host
         self.port = port or self.port
         self.insist = kwargs.get("insist", self.insist)
+        self.heartbeat = kwargs.get("heartbeat", 0)
         self.connect_timeout = kwargs.get("connect_timeout",
                                           self.connect_timeout)
         self.ssl = kwargs.get("ssl", self.ssl)
