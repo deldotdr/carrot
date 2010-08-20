@@ -536,7 +536,8 @@ class Consumer(object):
 
     def close(self):
         """Close the channel to the queue."""
-        self.cancel()
+        #Hack: Need to have async cancel
+        #self.cancel()
         self.backend.close()
         self._closed = True
 
