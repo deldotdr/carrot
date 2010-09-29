@@ -17,3 +17,5 @@ eggs
 bin
 developer-eggs
 downloads
+*.komodoproject
+*.kpf
