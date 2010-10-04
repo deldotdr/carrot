@@ -477,12 +477,13 @@ class Consumer(object):
         initial method for starting consumer using txamqp backend
         """
         no_ack = no_ack or self.no_ack
-        self.backend.declare_consumer(queue=self.queue, no_ack=no_ack,
+        d = self.backend.declare_consumer(queue=self.queue, no_ack=no_ack,
                                       callback=self._receive_callback,
                                       consumer_tag=self.consumer_tag,
                                       nowait=True)
         self.channel_open = True
         # return self.backend.consume(limit=limit)
+        return d
 
     def wait(self, limit=None):
         """Go into consume mode.
