@@ -37,16 +37,19 @@ class ChannelWithCallback(AMQChannel):
 
     def __init__(self, id, outgoing):
         AMQChannel.__init__(self, id, outgoing)
-        self.deliver_callbacks = []
+        #self.deliver_callbacks = []
+        self.deliver_callback = None
 
     def register_deliver_callback(self, callback):
-        self.deliver_callbacks.append(callback)
+        #self.deliver_callbacks.append(callback)
+        self.deliver_callback = callback
 
     def _deliver(self, msg):
-        if not self.deliver_callbacks:
+        if not self.deliver_callback:
             raise NotImplementedError("No channel callbacks...")
-        for cb in self.deliver_callbacks:
-            cb(msg)
+        #for cb in self.deliver_callbacks:
+        #    cb(msg)
+        return self.deliver_callback(msg)
 
 
 class Connection(AMQClient):
@@ -259,12 +262,13 @@ class Backend(BaseBackend):
             self._channel_ref = weakref.ref(self.connection.get_channel())
         return self._channel
 
-    def establish_connection(self):
+    def establish_connection(self, delegate=None):
         """Establish connection to the AMQP broker."""
         conninfo = self.connection
         if not conninfo.port:
             conninfo.port = self.default_port
-        delegate = InterceptionPoint()
+        if delegate is None:
+            delegate = InterceptionPoint()
         conn_creator = ConnectionCreator(reactor, 
                           username=conninfo.userid,
                           password=conninfo.password,
@@ -278,8 +282,10 @@ class Backend(BaseBackend):
         return conn_creator.connectTCP(conninfo.hostname, conninfo.port)
 
     def close_connection(self, connection):
-        """Close the AMQP broker connection."""
-        connection.close()
+        """Close the AMQP broker connection by calling connection_close on
+        channel 0"""
+        chan0 = connection.channel(0)
+        return chan0.connection_close()
 
     def queue_exists(self, queue):
         """Check if a queue has been declared.

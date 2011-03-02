@@ -127,13 +127,14 @@ class BrokerConnection(object):
         return self._connection
 
     @defer.inlineCallbacks
-    def connect(self):
+    def connect(self, delegate=None):
         """
         @todo XXX robustify
+        @param delegate an instance of TwistedDelegate (yeah, kinda hackey)
         Establish a connection to the AMQP server.
         """
         # this yield is waiting on the client creator in the backend
-        self._connection = yield self._establish_connection()
+        self._connection = yield self._establish_connection(delegate)
         # self._connection.install
         self._closed = False
         defer.returnValue(self._connection)
@@ -146,8 +147,8 @@ class BrokerConnection(object):
             raise e_type(e_value)
         self.close()
 
-    def _establish_connection(self):
-        return self.create_backend().establish_connection()
+    def _establish_connection(self, delegate=None):
+        return self.create_backend().establish_connection(delegate)
 
     def get_backend_cls(self):
         """Get the currently used backend class."""
@@ -175,7 +176,8 @@ class BrokerConnection(object):
         try:
             if self._connection:
                 backend = self.create_backend()
-                backend.close_connection(self._connection)
+                self._closed = True
+                return backend.close_connection(self._connection)
         except socket.error:
             pass
         self._closed = True
