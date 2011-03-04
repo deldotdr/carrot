@@ -56,14 +56,14 @@ class Connection(AMQClient):
     """
     @note Adds to and augments functionality of the txAMQP library.
     """
-    channelClass = ChannelWithCallback    
+    channelClass = ChannelWithCallback
     next_channel_id = 0
 
     def channel(self, id=None):
-        """Overrides AMQClient. Changes: 
+        """Overrides AMQClient. Changes:
             1) no need to return deferred. The channelLock doesn't protect
             against any race conditions; the channel reference is returned,
-            so any number of those references could exist already. 
+            so any number of those references could exist already.
             2) auto channel numbering
             3) replace deferred queue for basic_deliver(s) with simple
                buffer(list)
@@ -103,7 +103,7 @@ class Connection(AMQClient):
         """
 
 class InterceptionPoint(TwistedDelegate):
-    """@todo allow for filters/interceptors to be installed 
+    """@todo allow for filters/interceptors to be installed
     """
 
     @defer.inlineCallbacks
@@ -115,10 +115,10 @@ class InterceptionPoint(TwistedDelegate):
         ch._deliver(msg)
 
 class ConnectionCreator(object):
-    """Create AMQP Client. 
+    """Create AMQP Client.
     The AMQP Client uses one persistent connection, so a Factory is not
     necessary.
-    
+
     Client Creator is initialized with AMQP Broker configuration.
 
     ConnectTCP is called with TCP configuration.
@@ -126,8 +126,8 @@ class ConnectionCreator(object):
 
     protocol = Connection
 
-    def __init__(self, reactor, username='guest', password='guest', 
-                                vhost='/', delegate=None, 
+    def __init__(self, reactor, username='guest', password='guest',
+                                vhost='/', delegate=None,
                                 spec_path=spec_path_def,
                                 heartbeat=0):
         self.reactor = reactor
@@ -146,7 +146,7 @@ class ConnectionCreator(object):
         instance.
         """
         d = defer.Deferred()
-        p = self.protocol(self.delegate, 
+        p = self.protocol(self.delegate,
                                     self.vhost,
                                     self.spec,
                                     heartbeat=self.heartbeat)
@@ -355,7 +355,7 @@ class Backend(BaseBackend):
 
     def declare_consumer(self, queue, no_ack, callback, consumer_tag, nowait=False):
         """Declare a consumer.
-        XXX here is where delegate comes in, callback 
+        XXX here is where delegate comes in, callback
         """
         self.channel.register_deliver_callback(callback)
         return self.channel.basic_consume(queue=queue,
@@ -370,13 +370,15 @@ class Backend(BaseBackend):
 
     def cancel(self, consumer_tag):
         """Cancel a channel by consumer tag."""
-        self.channel.basic_cancel(consumer_tag=consumer_tag)
+        return self.channel.basic_cancel(consumer_tag=consumer_tag)
 
     def close(self):
         """Close the channel if open."""
         # if self._channel and self._channel.is_open:
-        self._channel.channel_close()
+        d = self._channel.channel_close()
+        # @todo  does this work before callback is fired?
         self._channel_ref = None
+        return d
 
     def ack(self, delivery_tag):
         """Acknowledge a message by delivery tag."""

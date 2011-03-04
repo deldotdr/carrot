@@ -194,7 +194,7 @@ class Consumer(object):
     exchange_type = "direct"
     channel_open = False
     warn_if_exists = False
-    auto_declare = False 
+    auto_declare = False
     auto_ack = False
     no_ack = False
     _closed = True
@@ -299,7 +299,7 @@ class Consumer(object):
         consumer that has already done self.declare
         also, use the exchange the consumer's queue is already bound to
 
-        XXX handle amqp error/exception 
+        XXX handle amqp error/exception
         """
         if self.queue:
             yield self.backend.queue_bind(queue=self.queue,
@@ -477,12 +477,13 @@ class Consumer(object):
         initial method for starting consumer using txamqp backend
         """
         no_ack = no_ack or self.no_ack
-        self.backend.declare_consumer(queue=self.queue, no_ack=no_ack,
+        d = self.backend.declare_consumer(queue=self.queue, no_ack=no_ack,
                                       callback=self._receive_callback,
                                       consumer_tag=self.consumer_tag,
                                       nowait=True)
         self.channel_open = True
         # return self.backend.consume(limit=limit)
+        return d
 
     def wait(self, limit=None):
         """Go into consume mode.
@@ -530,16 +531,17 @@ class Consumer(object):
         """Cancel a running :meth:`iterconsume` session."""
         if self.channel_open:
             try:
-                self.backend.cancel(self.consumer_tag)
+                return self.backend.cancel(self.consumer_tag)
             except KeyError:
-                pass
+                return None
 
     def close(self):
         """Close the channel to the queue."""
         #Hack: Need to have async cancel
         #self.cancel()
-        self.backend.close()
+        d = self.backend.close()
         self._closed = True
+        return d
 
     def flow(self, active):
         """This method asks the peer to pause or restart the flow of
@@ -554,7 +556,7 @@ class Consumer(object):
         until it receives the ``flow(active=True)`` restart method.
 
         """
-        self.backend.flow(active)
+        return self.backend.flow(active)
 
     def qos(self, prefetch_size=0, prefetch_count=0, apply_global=False):
         """Request specific Quality of Service.
@@ -834,8 +836,9 @@ class Publisher(object):
 
     def close(self):
         """Close connection to queue."""
-        self.backend.close()
+        d = self.backend.close()
         self._closed = True
+        return d
 
 
 class Messaging(object):
@@ -881,7 +884,7 @@ class Messaging(object):
 
     def send(self, message_data, delivery_mode=None):
         """See :meth:`Publisher.send`"""
-        self.publisher.send(message_data, delivery_mode=delivery_mode)
+        return self.publisher.send(message_data, delivery_mode=delivery_mode)
 
     def fetch(self, **kwargs):
         """See :meth:`Consumer.fetch`"""
@@ -889,9 +892,10 @@ class Messaging(object):
 
     def close(self):
         """Close any open channels."""
-        self.consumer.close()
-        self.publisher.close()
+        d1 = self.consumer.close()
+        d2 = self.publisher.close()
         self._closed = True
+        return defer.DeferredList([d1,d2])
 
 
 class ConsumerSet(object):

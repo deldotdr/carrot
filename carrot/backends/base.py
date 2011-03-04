@@ -68,8 +68,9 @@ class BaseMessage(object):
         if self.acknowledged:
             raise self.MessageStateError(
                 "Message already acknowledged with state: %s" % self._state)
-        self.backend.reject(self.delivery_tag)
+        d = self.backend.reject(self.delivery_tag)
         self._state = "REJECTED"
+        return d
 
     def requeue(self):
         """Reject this message and put it back on the queue.
@@ -84,8 +85,9 @@ class BaseMessage(object):
         if self.acknowledged:
             raise self.MessageStateError(
                 "Message already acknowledged with state: %s" % self._state)
-        self.backend.requeue(self.delivery_tag)
+        d = self.backend.requeue(self.delivery_tag)
         self._state = "REQUEUED"
+        return d
 
     @property
     def acknowledged(self):
