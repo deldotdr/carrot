@@ -58,6 +58,7 @@ class Connection(AMQClient):
     """
     channelClass = ChannelWithCallback
     next_channel_id = 0
+    closed=False
 
     def channel(self, id=None):
         """Overrides AMQClient. Changes:
@@ -101,6 +102,14 @@ class Connection(AMQClient):
     def commonDelivery(self, msg):
         """delegate sends basic_delivery, basic_get_ok, etc. here
         """
+
+    def connectionLost(self, reason):
+        if self.heartbeatInterval > 0:
+            if self.sendHB.running:
+                self.sendHB.stop()
+            if self.checkHB.active():
+                self.checkHB.cancel()
+        #self.close(reason)
 
 class InterceptionPoint(TwistedDelegate):
     """@todo allow for filters/interceptors to be installed
@@ -284,6 +293,8 @@ class Backend(BaseBackend):
     def close_connection(self, connection):
         """Close the AMQP broker connection by calling connection_close on
         channel 0"""
+        if connection.closed:
+            return
         chan0 = connection.channel(0)
         return chan0.connection_close()
 
