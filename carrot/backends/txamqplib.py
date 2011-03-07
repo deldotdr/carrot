@@ -58,7 +58,7 @@ class Connection(AMQClient):
     """
     channelClass = ChannelWithCallback
     next_channel_id = 0
-    closed=False
+    closed=True
 
     def channel(self, id=None):
         """Overrides AMQClient. Changes:
@@ -87,6 +87,7 @@ class Connection(AMQClient):
         """
         Here you can do something when the connection is made.
         """
+        self.closed = False
         AMQClient.connectionMade(self)
         # yield self.authenticate(self.factory.username, self.factory.password)
 
@@ -103,13 +104,20 @@ class Connection(AMQClient):
         """delegate sends basic_delivery, basic_get_ok, etc. here
         """
 
+    def close(self, reason):
+        for ch in self.channels.values():
+            ch.close(reason)
+        for q in self.queues.values():
+            q.close()
+        self.delegate.close(reason)
+
     def connectionLost(self, reason):
         if self.heartbeatInterval > 0:
             if self.sendHB.running:
                 self.sendHB.stop()
             if self.checkHB.active():
                 self.checkHB.cancel()
-        #self.close(reason)
+        self.close(reason)
 
 class InterceptionPoint(TwistedDelegate):
     """@todo allow for filters/interceptors to be installed
@@ -295,8 +303,12 @@ class Backend(BaseBackend):
         channel 0"""
         if connection.closed:
             return
+        def connection_close_ok(result):
+            connection.transport.loseConnection()
         chan0 = connection.channel(0)
-        return chan0.connection_close()
+        d = chan0.connection_close(reply_code=200, reply_text='Normal Shutdown')
+        d.addCallback(connection_close_ok)
+        return d
 
     def queue_exists(self, queue):
         """Check if a queue has been declared.
