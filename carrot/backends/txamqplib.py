@@ -142,6 +142,7 @@ class ConnectionCreator(object):
     """
 
     protocol = Connection
+    spec_cache = {}
 
     def __init__(self, reactor, username='guest', password='guest',
                                 vhost='/', delegate=None,
@@ -151,7 +152,14 @@ class ConnectionCreator(object):
         self.username = username
         self.password = password
         self.vhost = vhost
-        self.spec= spec.load(spec_path)
+
+        # Cache the specs for enormous speedups on subsequent connections
+        cache = ConnectionCreator.spec_cache
+        if spec_path in cache:
+            self.spec = cache[spec_path]
+        else:
+            self.spec = cache.setdefault(spec_path, spec.load(spec_path))
+
         self.heartbeat = heartbeat
         if delegate is None:
             delegate = TwistedDelegate()
