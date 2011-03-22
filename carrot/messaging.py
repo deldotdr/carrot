@@ -212,6 +212,7 @@ class Consumer(object):
         self.exchange = exchange or self.exchange
         self.routing_key = routing_key or self.routing_key
         self.callbacks = []
+        self.callback = None
 
         # Options
         self.durable = kwargs.get("durable", self.durable)
@@ -315,7 +316,7 @@ class Consumer(object):
 
         if self.auto_ack and not message.acknowledged:
             message.ack()
-        self.receive(message.payload, message)
+        return self.receive(message.payload, message)
 
     @defer.inlineCallbacks
     def fetch(self, no_ack=None, auto_ack=None, enable_callbacks=False):
@@ -367,14 +368,16 @@ class Consumer(object):
         :raises NotImplementedError: If no callbacks has been registered.
 
         """
-        if not self.callbacks:
+        #if not self.callbacks:
+        if not self.callback:
             raise NotImplementedError("No consumer callbacks registered")
-        for callback in self.callbacks:
+        #for callback in self.callbacks:
             # callback(message_data, message)
             # hack/design decission
             # interceptor pipe only needs message object...not decoded app
             # message
-            callback(message)
+            #callback(message)
+        return self.callback(message)
 
     def register_callback(self, callback):
         """Register a callback function to be triggered by :meth:`receive`.
@@ -389,7 +392,9 @@ class Consumer(object):
 
                 The :class:`carrot.backends.base.BaseMessage` instance.
         """
-        self.callbacks.append(callback)
+        # Don't support a list of callbacks 
+        #self.callbacks.append(callback)
+        self.callback = callback
 
     def discard_all(self, filterfunc=None):
         """Discard all waiting messages.
